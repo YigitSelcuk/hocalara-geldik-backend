@@ -1,0 +1,614 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & AUTHENTICATION
+// ============================================
+
+enum UserRole {
+  SUPER_ADMIN
+  CENTER_ADMIN
+  BRANCH_ADMIN
+  EDITOR
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  name          String
+  role          UserRole  @default(EDITOR)
+  avatar        String?
+  isActive      Boolean   @default(true)
+  
+  // Branch assignment (for BRANCH_ADMIN)
+  branchId      String?
+  branch        Branch?   @relation(fields: [branchId], references: [id])
+  
+  // Relations
+  pages         Page[]
+  createdSliders Slider[]
+  createdMenus  Menu[]
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+  
+  @@index([email])
+  @@index([role])
+  @@index([branchId])
+}
+
+// ============================================
+// SLIDER MANAGEMENT
+// ============================================
+
+model Slider {
+  id          String   @id @default(uuid())
+  title       String
+  subtitle    String?
+  image       String
+  link        String?
+  target      String   @default("main") // 'main' or branchId
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  
+  // Relations
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([target])
+  @@index([order])
+  @@index([isActive])
+}
+
+// ============================================
+// MENU MANAGEMENT
+// ============================================
+
+enum MenuPosition {
+  TOPBAR
+  HEADER
+  FOOTER
+}
+
+model Menu {
+  id          String       @id @default(uuid())
+  name        String
+  slug        String       @unique
+  position    MenuPosition
+  isActive    Boolean      @default(true)
+  
+  // Relations
+  items       MenuItem[]
+  createdById String
+  createdBy   User         @relation(fields: [createdById], references: [id])
+  
+  // Timestamps
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  @@index([slug])
+  @@index([position])
+}
+
+model MenuItem {
+  id          String     @id @default(uuid())
+  menuId      String
+  menu        Menu       @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  
+  // Hierarchy
+  parentId    String?
+  parent      MenuItem?  @relation("MenuItemChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children    MenuItem[] @relation("MenuItemChildren")
+  
+  // Content
+  label       String
+  url         String?
+  pageId      String?
+  page        Page?      @relation(fields: [pageId], references: [id])
+  categoryId  String?
+  category    Category?  @relation(fields: [categoryId], references: [id])
+  
+  // Settings
+  target      String     @default("_self") // _self, _blank
+  order       Int        @default(0)
+  isActive    Boolean    @default(true)
+  
+  // SEO
+  seoTitle    String?
+  seoNoFollow Boolean    @default(false)
+  
+  // Timestamps
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  @@index([menuId])
+  @@index([parentId])
+  @@index([order])
+}
+
+// ============================================
+// CONTENT MANAGEMENT
+// ============================================
+
+enum PageType {
+  REGULAR
+  NEWS
+  BLOG
+  PHOTO_GALLERY
+  VIDEO_GALLERY
+}
+
+enum PageStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Page {
+  id              String      @id @default(uuid())
+  type            PageType    @default(REGULAR)
+  status          PageStatus  @default(DRAFT)
+  
+  // Content
+  title           String
+  slug            String      @unique
+  content         String      @db.Text
+  excerpt         String?
+  featuredImage   String?
+  
+  // Relations
+  categoryId      String?
+  category        Category?   @relation(fields: [categoryId], references: [id])
+  authorId        String
+  author          User        @relation(fields: [authorId], references: [id])
+  branchId        String?
+  branch          Branch?     @relation(fields: [branchId], references: [id])
+  media           Media[]
+  menuItems       MenuItem[]
+  
+  // Branch news approval
+  isApproved      Boolean     @default(false)
+  isFeatured      Boolean     @default(false)
+  
+  // Publishing
+  publishedAt     DateTime?
+  
+  // SEO
+  seoTitle        String?
+  seoDescription  String?
+  seoKeywords     String?
+  
+  // Timestamps
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  @@index([slug])
+  @@index([type])
+  @@index([status])
+  @@index([categoryId])
+  @@index([branchId])
+  @@index([isApproved])
+  @@index([publishedAt])
+}
+
+// ============================================
+// CATEGORY MANAGEMENT
+// ============================================
+
+model Category {
+  id          String     @id @default(uuid())
+  name        String
+  slug        String     @unique
+  description String?
+  image       String?
+  icon        String?
+  
+  // Hierarchy
+  parentId    String?
+  parent      Category?  @relation("CategoryChildren", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryChildren")
+  
+  // Relations
+  pages       Page[]
+  menuItems   MenuItem[]
+  
+  // Settings
+  order       Int        @default(0)
+  isActive    Boolean    @default(true)
+  
+  // SEO
+  seoTitle    String?
+  seoDescription String?
+  
+  // Timestamps
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  @@index([slug])
+  @@index([parentId])
+  @@index([order])
+}
+
+// ============================================
+// BRANCH MANAGEMENT
+// ============================================
+
+model Branch {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?
+  
+  // Contact
+  address     String
+  phone       String
+  whatsapp    String?
+  email       String?
+  
+  // Location
+  lat         Float
+  lng         Float
+  
+  // Media
+  image       String?
+  customBanner String?
+  successBanner String?
+  
+  // Branding
+  logo        String?
+  primaryColor String?
+  
+  // Relations
+  users       User[]
+  pages       Page[]
+  teachers    Teacher[]
+  
+  // Settings
+  isActive    Boolean  @default(true)
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([slug])
+  @@index([isActive])
+}
+
+// ============================================
+// MEDIA MANAGEMENT
+// ============================================
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+}
+
+model Media {
+  id          String    @id @default(uuid())
+  type        MediaType
+  filename    String
+  originalName String
+  mimeType    String
+  size        Int
+  url         String
+  thumbnail   String?
+  
+  // Relations
+  pageId      String?
+  page        Page?     @relation(fields: [pageId], references: [id])
+  
+  // Metadata
+  alt         String?
+  caption     String?
+  
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([pageId])
+  @@index([type])
+}
+
+// ============================================
+// SITE SETTINGS
+// ============================================
+
+model Setting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String   @db.Text
+  type        String   @default("string") // string, number, boolean, json
+  group       String   @default("general") // general, seo, social, contact, etc.
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([key])
+  @@index([group])
+}
+
+// ============================================
+// CONTACT FORM SUBMISSIONS
+// ============================================
+
+model ContactSubmission {
+  id          String   @id @default(uuid())
+  name        String
+  email       String
+  phone       String?
+  subject     String?
+  message     String   @db.Text
+  
+  // Branch specific
+  branchId    String?
+  
+  // Status
+  isRead      Boolean  @default(false)
+  isReplied   Boolean  @default(false)
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([branchId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// ============================================
+// HOMEPAGE CONTENT MANAGEMENT
+// ============================================
+
+model BannerCard {
+  id          String   @id @default(uuid())
+  icon        String   // Emoji or icon name
+  title       String
+  description String
+  bgColor     String   // Tailwind class
+  hoverColor  String   // Tailwind class
+  link        String
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([order])
+  @@index([isActive])
+}
+
+model Statistic {
+  id        String   @id @default(uuid())
+  value     String   // e.g., "81", "250+", "1500+"
+  label     String   // e.g., "İl", "Şube"
+  icon      String   // Emoji or icon name
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([order])
+  @@index([isActive])
+}
+
+model Feature {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  icon        String   // Emoji or icon name
+  section     String   // 'success-centers', 'digital-platform', 'abroad-education'
+  features    Json?    // Array of sub-features
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([section])
+  @@index([order])
+  @@index([isActive])
+}
+
+model BlogPost {
+  id         String   @id @default(uuid())
+  title      String
+  excerpt    String
+  content    String   @db.Text
+  category   String   // e.g., 'Rehberlik', 'Sınav Stratejileri', 'Motivasyon'
+  author     String
+  date       String   // Display date
+  image      String
+  readTime   String   // e.g., "5 dk"
+  isActive   Boolean  @default(true)
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  @@index([category])
+  @@index([isActive])
+}
+
+model ExamDate {
+  id          String   @id @default(uuid())
+  examName    String   // e.g., "TYT", "AYT", "LGS"
+  examDate    DateTime
+  description String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([examDate])
+  @@index([order])
+  @@index([isActive])
+}
+
+model SocialMedia {
+  id        String   @id @default(uuid())
+  platform  String   // 'youtube', 'instagram', 'twitter', 'facebook', 'linkedin'
+  url       String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([platform])
+  @@index([order])
+  @@index([isActive])
+}
+
+model YouTubeChannel {
+  id           String   @id @default(uuid())
+  name         String
+  url          String
+  thumbnail    String?
+  subscribers  String?
+  videoCount   String?
+  description  String?
+  order        Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model YearlySuccess {
+  id              String      @id @default(uuid())
+  year            String      @unique // e.g., "2024"
+  banner          SuccessBanner?
+  students        TopStudent[]
+  totalDegrees    Int         @default(0)
+  placementCount  Int         @default(0)
+  successRate     Float       @default(0)
+  cityCount       Int         @default(0)
+  top100Count     Int         @default(0)
+  top1000Count    Int         @default(0)
+  yksAverage      Float       @default(0)
+  lgsAverage      Float       @default(0)
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model SuccessBanner {
+  id            String        @id @default(uuid())
+  yearlySuccess YearlySuccess @relation(fields: [yearlySuccessId], references: [id], onDelete: Cascade)
+  yearlySuccessId String      @unique
+  title         String
+  subtitle      String
+  description   String        @db.Text
+  image         String
+  highlightText String?
+  gradientFrom  String        @default("#2563eb")
+  gradientTo    String        @default("#1e40af")
+}
+
+model TopStudent {
+  id              String        @id @default(uuid())
+  yearlySuccess   YearlySuccess @relation(fields: [yearlySuccessId], references: [id], onDelete: Cascade)
+  yearlySuccessId String
+  name            String
+  rank            String
+  exam            String
+  image           String?
+  branch          String?
+  university      String?
+  score           Float?
+  order           Int           @default(0)
+}
+model HomeSection {
+  id          String   @id @default(uuid())
+  key         String   @unique // e.g., 'hero', 'centers', 'digital', 'abroad', 'cta'
+  title       String
+  subtitle    String?
+  topTitle    String?  // The badge/top text
+  image       String?
+  bgImage     String?
+  link        String?
+  linkText    String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([key])
+}
+
+model Teacher {
+  id        String   @id @default(uuid())
+  name      String
+  subject   String
+  image     String?
+  branchId  String?
+  branch    Branch?  @relation(fields: [branchId], references: [id])
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([branchId])
+}
+
+model VideoLesson {
+  id          String   @id @default(uuid())
+  title       String
+  description String   @db.Text
+  thumbnail   String?
+  videoUrl    String
+  category    String   
+  subject     String   
+  duration    String?  
+  views       Int      @default(0)
+  uploadDate  DateTime @default(now())
+  teacher     String?
+  difficulty  String?  
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EducationPackage {
+  id               String   @id @default(uuid())
+  name             String
+  slug             String   @unique
+  type             String   
+  description      String   @db.Text
+  shortDescription String
+  price            Float?
+  originalPrice    Float?
+  image            String?
+  features         Json?    
+  videoCount       Int?
+  subjectCount     Int?
+  duration         String?
+  isPopular        Boolean  @default(false)
+  isNew            Boolean  @default(false)
+  discount         Int?
+  isActive         Boolean  @default(true)
+  order            Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
