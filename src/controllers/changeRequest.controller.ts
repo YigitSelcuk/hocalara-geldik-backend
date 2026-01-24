@@ -92,7 +92,15 @@ export const approve = async (req: AuthRequest, res: Response, next: NextFunctio
         if (request.status !== 'PENDING') throw new AppError('Request already reviewed', 400);
         
         // Apply the changes based on changeType
-        await applyChanges(request);
+        try {
+            await applyChanges(request);
+        } catch (applyError: any) {
+            console.error('❌ Error applying changes:', applyError);
+            return res.status(400).json({ 
+                success: false, 
+                error: applyError.message || 'Failed to apply changes' 
+            });
+        }
         
         // Update request status
         const updatedRequest = await prisma.changeRequest.update({
@@ -189,6 +197,11 @@ function getChangeTypeLabel(type: string): string {
         BLOG_CREATE: 'Yeni haber ekleme',
         BLOG_UPDATE: 'Haber güncelleme',
         BLOG_DELETE: 'Haber silme',
+        SUCCESS_CREATE: 'Yeni başarı ekleme',
+        SUCCESS_UPDATE: 'Başarı güncelleme',
+        SUCCESS_DELETE: 'Başarı silme',
+        STUDENT_CREATE: 'Yeni öğrenci ekleme',
+        STUDENT_DELETE: 'Öğrenci silme',
     };
     return labels[type] || type;
 }
@@ -317,6 +330,106 @@ async function applyChanges(request: any) {
         case 'BLOG_DELETE':
             if (entityId) {
                 await prisma.blogPost.delete({
+                    where: { id: entityId }
+                });
+            }
+            break;
+            
+        case 'SUCCESS_CREATE':
+            // Clean the data for yearly success creation
+            console.log('🏆 Creating yearly success from change request:', newData);
+            const { id: successId, createdAt: sCreatedAt, updatedAt: sUpdatedAt, banner, ...cleanSuccessData } = newData;
+            
+            // Check if year already exists for this branch
+            const existingYearSuccess = await prisma.yearlySuccess.findFirst({
+                where: {
+                    year: String(cleanSuccessData.year),
+                    branchId: cleanSuccessData.branchId
+                }
+            });
+            
+            if (existingYearSuccess) {
+                throw new Error(`${cleanSuccessData.year} yılı için bu şubede zaten bir başarı kaydı var. Lütfen mevcut kaydı düzenleyin.`);
+            }
+            
+            const createdSuccess = await prisma.yearlySuccess.create({
+                data: {
+                    ...cleanSuccessData,
+                    year: String(cleanSuccessData.year), // Ensure year is string
+                    banner: banner ? {
+                        create: {
+                            title: banner.title || '',
+                            subtitle: banner.subtitle || '',
+                            description: banner.description || '',
+                            image: banner.image || '',
+                            highlightText: banner.highlightText || null,
+                            gradientFrom: banner.gradientFrom || '#2563eb',
+                            gradientTo: banner.gradientTo || '#1e40af'
+                        }
+                    } : undefined
+                }
+            });
+            console.log('✅ Yearly success created:', createdSuccess.id);
+            break;
+            
+        case 'SUCCESS_UPDATE':
+            if (entityId) {
+                // Clean the data for yearly success update
+                const { id: sId, createdAt: scAt, updatedAt: suAt, banner: sBanner, students, ...cleanSuccessUpdateData } = newData;
+                
+                await prisma.yearlySuccess.update({
+                    where: { id: entityId },
+                    data: {
+                        ...cleanSuccessUpdateData,
+                        banner: sBanner ? {
+                            upsert: {
+                                create: {
+                                    title: sBanner.title || '',
+                                    subtitle: sBanner.subtitle || '',
+                                    description: sBanner.description || '',
+                                    image: sBanner.image || '',
+                                    highlightText: sBanner.highlightText || null,
+                                    gradientFrom: sBanner.gradientFrom || '#2563eb',
+                                    gradientTo: sBanner.gradientTo || '#1e40af'
+                                },
+                                update: {
+                                    title: sBanner.title || '',
+                                    subtitle: sBanner.subtitle || '',
+                                    description: sBanner.description || '',
+                                    image: sBanner.image || '',
+                                    highlightText: sBanner.highlightText || null,
+                                    gradientFrom: sBanner.gradientFrom || '#2563eb',
+                                    gradientTo: sBanner.gradientTo || '#1e40af'
+                                }
+                            }
+                        } : undefined
+                    }
+                });
+            }
+            break;
+            
+        case 'SUCCESS_DELETE':
+            if (entityId) {
+                await prisma.yearlySuccess.delete({
+                    where: { id: entityId }
+                });
+            }
+            break;
+            
+        case 'STUDENT_CREATE':
+            // Clean the data for student creation
+            console.log('👨‍🎓 Creating student from change request:', newData);
+            const { id: studentId, createdAt: stCreatedAt, updatedAt: stUpdatedAt, ...cleanStudentData } = newData;
+            
+            const createdStudent = await prisma.topStudent.create({
+                data: cleanStudentData
+            });
+            console.log('✅ Student created:', createdStudent.id);
+            break;
+            
+        case 'STUDENT_DELETE':
+            if (entityId) {
+                await prisma.topStudent.delete({
                     where: { id: entityId }
                 });
             }

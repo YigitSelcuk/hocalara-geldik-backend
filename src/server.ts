@@ -30,8 +30,8 @@ import videoRoutes from './routes/video.routes';
 import packageRoutes from './routes/package.routes';
 import changeRequestRoutes from './routes/changeRequest.routes';
 import notificationRoutes from './routes/notification.routes';
-
-
+import leadRoutes from './routes/lead.routes';
+import franchiseRoutes from './routes/franchise.routes';
 
 // Middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -88,8 +88,8 @@ app.use('/api/videos', videoRoutes);
 app.use('/api/packages', packageRoutes);
 app.use('/api/change-requests', changeRequestRoutes);
 app.use('/api/notifications', notificationRoutes);
-
-
+app.use('/api/leads', leadRoutes);
+app.use('/api/franchise', franchiseRoutes);
 
 // Error handling
 app.use(errorHandler);

@@ -290,7 +290,9 @@ model Branch {
   teachers    Teacher[]
   packages    EducationPackage[]
   blogPosts   BlogPost[]
+  yearlySuccesses YearlySuccess[]
   changeRequests ChangeRequest[]
+  leads       Lead[]
   
   // Settings
   isActive    Boolean  @default(true)
@@ -386,6 +388,48 @@ model ContactSubmission {
   @@index([createdAt])
 }
 
+model Lead {
+  id          String   @id @default(uuid())
+  name        String
+  surname     String
+  phone       String
+  email       String?
+  
+  // Branch specific
+  branchId    String?
+  branch      Branch?  @relation(fields: [branchId], references: [id])
+  
+  // Status
+  status      String   @default("NEW") // NEW, CONTACTED, ENROLLED, REJECTED
+  notes       String?  @db.Text
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([branchId])
+}
+
+model FranchiseApplication {
+  id          String   @id @default(uuid())
+  name        String
+  surname     String
+  phone       String
+  email       String
+  city        String?
+  message     String?  @db.Text
+  
+  // Status
+  status      String   @default("NEW") // NEW, CONTACTED, APPROVED, REJECTED
+  notes       String?  @db.Text
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([status])
+  @@index([createdAt])
+}
 // ============================================
 // HOMEPAGE CONTENT MANAGEMENT
 // ============================================
@@ -521,7 +565,7 @@ model YouTubeChannel {
 
 model YearlySuccess {
   id              String      @id @default(uuid())
-  year            String      @unique // e.g., "2024"
+  year            String      // e.g., "2024"
   banner          SuccessBanner?
   students        TopStudent[]
   totalDegrees    Int         @default(0)
@@ -533,8 +577,17 @@ model YearlySuccess {
   yksAverage      Float       @default(0)
   lgsAverage      Float       @default(0)
   isActive        Boolean     @default(true)
+  
+  // Branch assignment (for branch-specific successes)
+  branchId        String?
+  branch          Branch?     @relation(fields: [branchId], references: [id])
+  
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
+  
+  @@unique([year, branchId])
+  @@index([branchId])
+  @@index([year])
 }
 
 model SuccessBanner {
@@ -575,6 +628,12 @@ model HomeSection {
   buttonLink  String?
   order       Int      @default(0)
   isActive    Boolean  @default(true)
+  
+  // SEO fields
+  seoTitle       String?
+  seoDescription String?
+  seoKeywords    String?
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -669,6 +728,11 @@ enum ChangeType {
   BLOG_CREATE
   BLOG_UPDATE
   BLOG_DELETE
+  SUCCESS_CREATE
+  SUCCESS_UPDATE
+  SUCCESS_DELETE
+  STUDENT_CREATE
+  STUDENT_DELETE
 }
 
 model ChangeRequest {
