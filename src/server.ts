@@ -28,6 +28,8 @@ import teacherRoutes from './routes/teacher.routes';
 import systemRoutes from './routes/system.routes';
 import videoRoutes from './routes/video.routes';
 import packageRoutes from './routes/package.routes';
+import changeRequestRoutes from './routes/changeRequest.routes';
+import notificationRoutes from './routes/notification.routes';
 
 
 
@@ -84,6 +86,8 @@ app.use('/api/teachers', teacherRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api/packages', packageRoutes);
+app.use('/api/change-requests', changeRequestRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 
 

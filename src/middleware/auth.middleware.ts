@@ -19,6 +19,12 @@ export const authenticate = async (
     try {
         const token = req.headers.authorization?.replace('Bearer ', '');
 
+        console.log('🔑 Authentication attempt:', {
+            hasToken: !!token,
+            path: req.path,
+            method: req.method
+        });
+
         if (!token) {
             throw new AppError('Authentication required', 401);
         }
@@ -26,9 +32,46 @@ export const authenticate = async (
         const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
         req.user = decoded;
 
+        console.log('✅ User authenticated:', {
+            email: decoded.email,
+            role: decoded.role,
+            branchId: decoded.branchId
+        });
+
         next();
     } catch (error) {
+        console.log('❌ Authentication failed:', error);
         next(new AppError('Invalid or expired token', 401));
+    }
+};
+
+// Optional authentication middleware - doesn't fail if no token
+export const optionalAuthenticate = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const token = req.headers.authorization?.replace('Bearer ', '');
+
+        if (token) {
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+                req.user = decoded;
+                console.log('✅ User authenticated (optional):', {
+                    email: decoded.email,
+                    role: decoded.role,
+                    branchId: decoded.branchId
+                });
+            } catch (error) {
+                // Token invalid but continue anyway
+                console.log('⚠️ Invalid token in optional auth, continuing as public');
+            }
+        }
+
+        next();
+    } catch (error) {
+        next(error);
     }
 };
 
@@ -55,7 +98,7 @@ export const authorizeBranch = (
         return next(new AppError('Authentication required', 401));
     }
 
-    const branchId = req.params.branchId || req.body.branchId;
+    const branchId = req.params.id || req.params.branchId || req.body.branchId;
 
     // Super admin and center admin can access all branches
     if (['SUPER_ADMIN', 'CENTER_ADMIN'].includes(req.user.role)) {

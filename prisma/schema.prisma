@@ -39,6 +39,9 @@ model User {
   pages         Page[]
   createdSliders Slider[]
   createdMenus  Menu[]
+  changeRequests ChangeRequest[]
+  reviewedChanges ChangeRequest[] @relation("ReviewedChanges")
+  notifications Notification[]
   
   // Timestamps
   createdAt     DateTime  @default(now())
@@ -63,6 +66,12 @@ model Slider {
   target      String   @default("main") // 'main' or branchId
   order       Int      @default(0)
   isActive    Boolean  @default(true)
+  
+  // Button configurations
+  primaryButtonText   String?
+  primaryButtonLink   String?
+  secondaryButtonText String?
+  secondaryButtonLink String?
   
   // Relations
   createdById String
@@ -279,6 +288,9 @@ model Branch {
   users       User[]
   pages       Page[]
   teachers    Teacher[]
+  packages    EducationPackage[]
+  blogPosts   BlogPost[]
+  changeRequests ChangeRequest[]
   
   // Settings
   isActive    Boolean  @default(true)
@@ -386,6 +398,7 @@ model BannerCard {
   bgColor     String   // Tailwind class
   hoverColor  String   // Tailwind class
   link        String
+  buttonText  String?  // Button text (e.g., "DETAYLI BİLGİ", "KANALA GİT")
   order       Int      @default(0)
   isActive    Boolean  @default(true)
   
@@ -432,6 +445,7 @@ model Feature {
 model BlogPost {
   id         String   @id @default(uuid())
   title      String
+  slug       String?  @unique // URL slug - must be unique
   excerpt    String
   content    String   @db.Text
   category   String   // e.g., 'Rehberlik', 'Sınav Stratejileri', 'Motivasyon'
@@ -440,12 +454,24 @@ model BlogPost {
   image      String
   readTime   String   // e.g., "5 dk"
   isActive   Boolean  @default(true)
+  isFeatured Boolean  @default(false)
+  
+  // SEO fields
+  seoTitle       String?
+  seoDescription String?
+  seoKeywords    String?
+  
+  // Branch assignment (for branch-specific news)
+  branchId   String?
+  branch     Branch?  @relation(fields: [branchId], references: [id])
   
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  publishedAt DateTime? // When the post was published
   
   @@index([category])
   @@index([isActive])
+  @@index([branchId])
 }
 
 model ExamDate {
@@ -539,20 +565,22 @@ model TopStudent {
 }
 model HomeSection {
   id          String   @id @default(uuid())
-  key         String   @unique // e.g., 'hero', 'centers', 'digital', 'abroad', 'cta'
-  title       String
+  page        String   // e.g., 'home', 'about', 'branches', etc.
+  section     String   // e.g., 'hero', 'intro', 'cta', etc.
+  title       String?
   subtitle    String?
-  topTitle    String?  // The badge/top text
-  image       String?
-  bgImage     String?
-  link        String?
-  linkText    String?
+  description String?  @db.Text
+  content     String?  @db.Text
+  buttonText  String?
+  buttonLink  String?
   order       Int      @default(0)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([key])
+  @@unique([page, section])
+  @@index([page])
+  @@index([section])
 }
 
 model Teacher {
@@ -608,7 +636,114 @@ model EducationPackage {
   discount         Int?
   isActive         Boolean  @default(true)
   order            Int      @default(0)
+  
+  // Branch specific
+  branchId         String?
+  branch           Branch?  @relation(fields: [branchId], references: [id])
+  
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  
+  @@index([branchId])
 }
 
+
+// ============================================
+// APPROVAL SYSTEM FOR BRANCH CHANGES
+// ============================================
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ChangeType {
+  BRANCH_UPDATE
+  TEACHER_CREATE
+  TEACHER_UPDATE
+  TEACHER_DELETE
+  PACKAGE_CREATE
+  PACKAGE_UPDATE
+  PACKAGE_DELETE
+  BLOG_CREATE
+  BLOG_UPDATE
+  BLOG_DELETE
+}
+
+model ChangeRequest {
+  id          String         @id @default(uuid())
+  
+  // Request info
+  changeType  ChangeType
+  status      ApprovalStatus @default(PENDING)
+  
+  // Who made the request
+  requestedBy String
+  requester   User           @relation(fields: [requestedBy], references: [id])
+  
+  // Branch context
+  branchId    String
+  branch      Branch         @relation(fields: [branchId], references: [id])
+  
+  // Change data
+  entityId    String?        // ID of the entity being changed (teacher id, branch id, etc.)
+  entityType  String?        // Type of entity (Teacher, Branch, etc.)
+  oldData     Json?          // Original data before change
+  newData     Json           // New data to be applied
+  
+  // Admin review
+  reviewedBy  String?
+  reviewer    User?          @relation("ReviewedChanges", fields: [reviewedBy], references: [id])
+  reviewedAt  DateTime?
+  reviewNote  String?        @db.Text
+  
+  // Relations
+  notifications Notification[]
+  
+  // Timestamps
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  
+  @@index([branchId])
+  @@index([status])
+  @@index([changeType])
+  @@index([requestedBy])
+}
+
+
+// ============================================
+// NOTIFICATION SYSTEM
+// ============================================
+
+enum NotificationType {
+  CHANGE_APPROVED
+  CHANGE_REJECTED
+  CHANGE_PENDING
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  type        NotificationType
+  title       String
+  message     String           @db.Text
+  
+  // Target user
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Related change request
+  changeRequestId String?
+  changeRequest   ChangeRequest? @relation(fields: [changeRequestId], references: [id], onDelete: Cascade)
+  
+  // Status
+  isRead      Boolean          @default(false)
+  
+  // Timestamps
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}

@@ -6,23 +6,43 @@ const prisma = new PrismaClient();
 export const getAll = async (req: Request, res: Response) => {
     try {
         const sections = await prisma.homeSection.findMany({
-            orderBy: { order: 'asc' },
+            orderBy: [
+                { page: 'asc' },
+                { order: 'asc' }
+            ],
         });
-        res.json(sections);
+        res.json({ data: sections });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching home sections', error });
     }
 };
 
-export const getByKey = async (req: Request, res: Response) => {
+export const getByPage = async (req: Request, res: Response) => {
+    try {
+        const sections = await prisma.homeSection.findMany({
+            where: { page: req.params.page },
+            orderBy: { order: 'asc' },
+        });
+        res.json({ data: sections });
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching page sections', error });
+    }
+};
+
+export const getByPageAndSection = async (req: Request, res: Response) => {
     try {
         const section = await prisma.homeSection.findUnique({
-            where: { key: req.params.key },
+            where: {
+                page_section: {
+                    page: req.params.page,
+                    section: req.params.section,
+                },
+            },
         });
         if (!section) return res.status(404).json({ message: 'Section not found' });
         res.json(section);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching home section', error });
+        res.status(500).json({ message: 'Error fetching section', error });
     }
 };
 
@@ -59,3 +79,4 @@ export const deleteSection = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Error deleting home section', error });
     }
 };
+

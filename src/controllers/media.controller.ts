@@ -37,23 +37,38 @@ export const uploadFile = async (req: AuthRequest, res: Response, next: NextFunc
             thumbnail = `/uploads/${thumbnailFilename}`;
         }
 
+        const mediaData: any = {
+            type,
+            filename: req.file.filename,
+            originalName: req.file.originalname,
+            mimeType: req.file.mimetype,
+            size: req.file.size,
+            url,
+            thumbnail,
+            alt,
+            caption
+        };
+
+        // Only add pageId if it exists
+        if (pageId) {
+            mediaData.pageId = pageId;
+        }
+
         const media = await prisma.media.create({
-            data: {
-                type,
-                filename: req.file.filename,
-                originalName: req.file.originalname,
-                mimeType: req.file.mimetype,
-                size: req.file.size,
-                url,
-                thumbnail,
-                pageId,
-                alt,
-                caption
-            }
+            data: mediaData
         });
 
-        res.status(201).json({ media });
+        // Return with url field for frontend
+        res.status(201).json({ 
+            success: true,
+            url: media.url, // Direct url field for easier access
+            data: {
+                ...media,
+                url: media.url
+            }
+        });
     } catch (error) {
+        console.error('Upload error:', error);
         // Clean up uploaded file if error occurs
         if (req.file) {
             await fs.unlink(req.file.path).catch(() => { });

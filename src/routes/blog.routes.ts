@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticate, authorize, optionalAuthenticate } from '../middleware/auth.middleware';
+import { authenticate, authorize } from '../middleware/auth.middleware';
 import {
     getAllBlogPosts,
     getBlogPostById,
@@ -10,8 +10,8 @@ import {
 
 const router = express.Router();
 
-// Public routes with optional authentication
-router.get('/', optionalAuthenticate, getAllBlogPosts);
+// Public routes
+router.get('/', getAllBlogPosts);
 router.get('/:id', getBlogPostById);
 
 // Protected routes - BRANCH_ADMIN can create/update/delete (with approval)

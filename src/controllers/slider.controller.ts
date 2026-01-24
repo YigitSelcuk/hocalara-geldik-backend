@@ -61,7 +61,11 @@ export const createSlider = async (req: AuthRequest, res: Response, next: NextFu
             return res.status(400).json({ errors: errors.array() });
         }
 
-        const { title, subtitle, image, link, target, isActive } = req.body;
+        const { 
+            title, subtitle, image, link, target, isActive,
+            primaryButtonText, primaryButtonLink,
+            secondaryButtonText, secondaryButtonLink
+        } = req.body;
 
         // Get the highest order number
         const maxOrder = await prisma.slider.findFirst({
@@ -79,6 +83,10 @@ export const createSlider = async (req: AuthRequest, res: Response, next: NextFu
                 target,
                 isActive: isActive !== undefined ? isActive : true,
                 order: (maxOrder?.order || 0) + 1,
+                primaryButtonText,
+                primaryButtonLink,
+                secondaryButtonText,
+                secondaryButtonLink,
                 createdById: req.user!.id
             },
             include: {
@@ -98,7 +106,11 @@ export const createSlider = async (req: AuthRequest, res: Response, next: NextFu
 export const updateSlider = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;
-        const { title, subtitle, image, link, target, isActive, order } = req.body;
+        const { 
+            title, subtitle, image, link, target, isActive, order,
+            primaryButtonText, primaryButtonLink,
+            secondaryButtonText, secondaryButtonLink
+        } = req.body;
 
         const slider = await prisma.slider.update({
             where: { id },
@@ -109,7 +121,11 @@ export const updateSlider = async (req: AuthRequest, res: Response, next: NextFu
                 ...(link !== undefined && { link }),
                 ...(target !== undefined && { target }),
                 ...(isActive !== undefined && { isActive }),
-                ...(order !== undefined && { order })
+                ...(order !== undefined && { order }),
+                ...(primaryButtonText !== undefined && { primaryButtonText }),
+                ...(primaryButtonLink !== undefined && { primaryButtonLink }),
+                ...(secondaryButtonText !== undefined && { secondaryButtonText }),
+                ...(secondaryButtonLink !== undefined && { secondaryButtonLink })
             },
             include: {
                 createdBy: {
