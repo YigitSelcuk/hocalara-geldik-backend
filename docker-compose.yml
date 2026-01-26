@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: hocalara_secure_2024
       POSTGRES_DB: hocalara_cms
     ports:
-      - "5433:5432"
+      - "5434:5432" # Changed from 5433 to 5434 as requested
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
