@@ -52,7 +52,7 @@ export const getAllPackages = async (req: AuthRequest, res: Response) => {
                     pendingDeleteIds.add(req.entityId);
                 } else if (req.changeType === 'PACKAGE_CREATE') {
                     pendingCreates.push({
-                        ...req.newData,
+                        ...(req.newData as object),
                         id: req.id,
                         isPending: true,
                         pendingType: 'CREATE'

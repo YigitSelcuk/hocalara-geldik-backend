@@ -57,8 +57,6 @@ export const getAllYearlySuccesses = async (req: any, res: Response) => {
                 successesWithPending.push({
                     id: createReq.id,
                     year: newData.year,
-                    title: `${newData.year} Başarıları`,
-                    description: '',
                     banner: newData.banner || null,
                     students: [],
                     totalDegrees: newData.totalDegrees || 0,
@@ -89,7 +87,7 @@ export const getAllYearlySuccesses = async (req: any, res: Response) => {
 
 export const getByYear = async (req: Request, res: Response) => {
     try {
-        const success = await prisma.yearlySuccess.findUnique({
+        const success = await prisma.yearlySuccess.findFirst({
             where: { year: req.params.year },
             include: {
                 banner: true,

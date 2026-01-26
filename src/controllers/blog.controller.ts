@@ -81,7 +81,7 @@ export const getAllBlogPosts = async (req: AuthRequest, res: Response) => {
                     pendingDeleteIds.add(req.entityId);
                 } else if (req.changeType === 'BLOG_CREATE') {
                     const pendingItem = {
-                        ...req.newData,
+                        ...(req.newData as object),
                         id: req.id,
                         isPending: true,
                         pendingType: 'CREATE',
