@@ -315,7 +315,7 @@ export const seedDatabase = async (req: Request, res: Response) => {
                 data: [
                     { page: 'home', section: 'centers', title: "Türkiye'nin En Büyük Eğitim Ağı", subtitle: "81 ilde güçlü şube ağımız, modern eğitim altyapımız ve uzman kadromuzla öğrencilerimize en kaliteli eğitimi sunuyoruz.", buttonLink: '/subeler', buttonText: 'Şubelerimizi Keşfedin', order: 0 },
                     { page: 'home', section: 'digital', title: 'Yapay Zeka Destekli Eğitim Platformu', subtitle: 'Öğrenciler ve veliler için geliştirdiğimiz dijital altyapı ile eğitim sürecini her adımda takip edin ve kişiselleştirilmiş öğrenme deneyimi yaşayın.', order: 1 }
-                ]
+                ] as any
             });
         }
 

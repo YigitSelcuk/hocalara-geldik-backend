@@ -51,7 +51,7 @@ export const getAll = async (req: AuthRequest, res: Response) => {
                     pendingDeleteIds.add(req.entityId);
                 } else if (req.changeType === 'TEACHER_CREATE') {
                     pendingCreates.push({
-                        ...(req.newData as object),
+                        ...(req.newData as any),
                         id: req.id, // Use change request ID as temporary ID
                         isPending: true,
                         pendingType: 'CREATE'

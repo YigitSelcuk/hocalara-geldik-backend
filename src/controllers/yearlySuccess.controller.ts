@@ -187,7 +187,7 @@ export const createYearlySuccess = async (req: AuthRequest, res: Response) => {
                     data: {
                         type: 'CHANGE_PENDING',
                         title: '🔔 Yeni Başarı Ekleme Talebi',
-                        message: `${req.user.name} yeni bir başarı ekleme talebi oluşturdu (${year}).`,
+                        message: `${(req.user as any).name} yeni bir başarı ekleme talebi oluşturdu (${year}).`,
                         userId: admin.id,
                         changeRequestId: changeRequest.id
                     }
@@ -426,7 +426,7 @@ export const deleteYearlySuccess = async (req: AuthRequest, res: Response) => {
                     data: {
                         type: 'CHANGE_PENDING',
                         title: '🔔 Başarı Silme Talebi',
-                        message: `${req.user.name} bir başarı silme talebi oluşturdu (${existingSuccess.year}).`,
+                        message: `${(req.user as any).name} bir başarı silme talebi oluşturdu (${existingSuccess.year}).`,
                         userId: admin.id,
                         changeRequestId: changeRequest.id
                     }
@@ -610,7 +610,7 @@ export const deleteStudent = async (req: AuthRequest, res: Response) => {
                     data: {
                         type: 'CHANGE_PENDING',
                         title: '🔔 Öğrenci Silme Talebi',
-                        message: `${req.user.name} bir öğrenci silme talebi oluşturdu (${student.name}).`,
+                        message: `${(req.user as any).name} bir öğrenci silme talebi oluşturdu (${student.name}).`,
                         userId: admin.id,
                         changeRequestId: changeRequest.id
                     }
