@@ -126,6 +126,7 @@ export const updateBranch = async (req: AuthRequest, res: Response, next: NextFu
             // Clean the update data - only keep valid branch fields
             const {
                 name, slug, description, address, phone, whatsapp, email,
+                weekdayHours, weekendHours, features,
                 lat, lng, image, customBanner, successBanner, logo, primaryColor, isActive
             } = updateData;
             
@@ -137,6 +138,9 @@ export const updateBranch = async (req: AuthRequest, res: Response, next: NextFu
             if (phone !== undefined) cleanUpdateData.phone = phone;
             if (whatsapp !== undefined) cleanUpdateData.whatsapp = whatsapp;
             if (email !== undefined) cleanUpdateData.email = email;
+            if (weekdayHours !== undefined) cleanUpdateData.weekdayHours = weekdayHours;
+            if (weekendHours !== undefined) cleanUpdateData.weekendHours = weekendHours;
+            if (features !== undefined) cleanUpdateData.features = features;
             if (lat !== undefined) cleanUpdateData.lat = lat;
             if (lng !== undefined) cleanUpdateData.lng = lng;
             if (image !== undefined) cleanUpdateData.image = image;
@@ -174,6 +178,7 @@ export const updateBranch = async (req: AuthRequest, res: Response, next: NextFu
         // Admin can update directly
         const {
             name, slug, description, address, phone, whatsapp, email,
+            weekdayHours, weekendHours, features,
             lat, lng, image, customBanner, successBanner, logo, primaryColor, isActive
         } = updateData;
 
@@ -187,6 +192,9 @@ export const updateBranch = async (req: AuthRequest, res: Response, next: NextFu
                 ...(phone !== undefined && { phone }),
                 ...(whatsapp !== undefined && { whatsapp }),
                 ...(email !== undefined && { email }),
+                ...(weekdayHours !== undefined && { weekdayHours }),
+                ...(weekendHours !== undefined && { weekendHours }),
+                ...(features !== undefined && { features }),
                 ...(lat !== undefined && { lat }),
                 ...(lng !== undefined && { lng }),
                 ...(image !== undefined && { image }),

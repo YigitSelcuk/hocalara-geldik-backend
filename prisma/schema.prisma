@@ -271,6 +271,13 @@ model Branch {
   whatsapp    String?
   email       String?
   
+  // Working hours
+  weekdayHours String?  @default("08:30 - 19:30")
+  weekendHours String?  @default("09:00 - 18:00")
+  
+  // Features (JSON array of feature objects)
+  features    Json?
+  
   // Location
   lat         Float
   lng         Float

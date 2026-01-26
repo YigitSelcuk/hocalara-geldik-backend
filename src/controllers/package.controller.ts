@@ -321,3 +321,27 @@ export const deletePackage = async (req: AuthRequest, res: Response, next: NextF
         res.status(500).json({ message: 'Error deleting package', error });
     }
 };
+
+export const reorderPackages = async (req: AuthRequest, res: Response) => {
+    try {
+        const { packages } = req.body; // Array of { id, order }
+        
+        if (!Array.isArray(packages)) {
+            return res.status(400).json({ message: 'Packages must be an array' });
+        }
+        
+        // Update all packages in a transaction
+        await prisma.$transaction(
+            packages.map((pkg: { id: string; order: number }) =>
+                prisma.educationPackage.update({
+                    where: { id: pkg.id },
+                    data: { order: pkg.order }
+                })
+            )
+        );
+        
+        res.json({ success: true, message: 'Package order updated' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error reordering packages', error });
+    }
+};
