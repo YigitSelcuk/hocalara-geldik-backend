@@ -1,0 +1,26 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install OpenSSL for Prisma compatibility
+RUN apk add --no-cache openssl
+
+# Install dependencies
+COPY package*.json ./
+RUN npm install
+
+# Copy prisma schema and generate client
+COPY prisma ./prisma/
+RUN npx prisma generate
+
+# Copy source code
+COPY . .
+
+# Build typescript
+RUN npm run build
+
+# Expose port
+EXPOSE 4000
+
+# Start production server
+CMD ["npm", "run", "start"]
