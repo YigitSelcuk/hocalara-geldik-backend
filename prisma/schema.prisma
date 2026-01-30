@@ -228,6 +228,7 @@ model Category {
   description String?
   image       String?
   icon        String?
+  type        String     @default("BLOG")
   
   // Hierarchy
   parentId    String?

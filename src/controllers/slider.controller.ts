@@ -80,7 +80,7 @@ export const createSlider = async (req: AuthRequest, res: Response, next: NextFu
                 subtitle,
                 image,
                 link,
-                target,
+                target: target || 'main',
                 isActive: isActive !== undefined ? isActive : true,
                 order: (maxOrder?.order || 0) + 1,
                 primaryButtonText,

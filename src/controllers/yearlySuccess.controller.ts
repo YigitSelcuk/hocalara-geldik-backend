@@ -13,6 +13,12 @@ export const getAllYearlySuccesses = async (req: any, res: Response) => {
         if (branchId) {
             where.branchId = branchId as string;
         }
+
+        // If not authenticated or not an admin, only show active
+        const isAdmin = req.user && ['SUPER_ADMIN', 'CENTER_ADMIN', 'BRANCH_ADMIN'].includes(req.user.role);
+        if (!isAdmin) {
+            where.isActive = true;
+        }
         
         const successes = await prisma.yearlySuccess.findMany({
             where,
@@ -242,7 +248,7 @@ export const createYearlySuccess = async (req: AuthRequest, res: Response) => {
 
 export const updateYearlySuccess = async (req: AuthRequest, res: Response) => {
     try {
-        const { banner, totalDegrees, placementCount, successRate, cityCount, top100Count, top1000Count, yksAverage, lgsAverage } = req.body;
+        const { banner, totalDegrees, placementCount, successRate, cityCount, top100Count, top1000Count, yksAverage, lgsAverage, isActive } = req.body;
         
         // Get existing success
         const existingSuccess = await prisma.yearlySuccess.findUnique({
@@ -292,6 +298,7 @@ export const updateYearlySuccess = async (req: AuthRequest, res: Response) => {
                         top1000Count: top1000Count !== undefined ? top1000Count : existingSuccess.top1000Count,
                         yksAverage: yksAverage !== undefined ? yksAverage : existingSuccess.yksAverage,
                         lgsAverage: lgsAverage !== undefined ? lgsAverage : existingSuccess.lgsAverage,
+                        isActive: isActive !== undefined ? isActive : existingSuccess.isActive,
                         banner: banner || existingSuccess.banner,
                         branchId: existingSuccess.branchId
                     }
@@ -334,6 +341,7 @@ export const updateYearlySuccess = async (req: AuthRequest, res: Response) => {
                 top1000Count: top1000Count !== undefined ? top1000Count : undefined,
                 yksAverage: yksAverage !== undefined ? yksAverage : undefined,
                 lgsAverage: lgsAverage !== undefined ? lgsAverage : undefined,
+                isActive: isActive !== undefined ? isActive : undefined,
                 banner: banner ? {
                     upsert: {
                         create: {

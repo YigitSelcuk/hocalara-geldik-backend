@@ -57,7 +57,18 @@ export const createCategory = async (req: AuthRequest, res: Response, next: Next
         const errors = validationResult(req);
         if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-        const { name, slug, description, image, icon, parentId, seoTitle, seoDescription } = req.body;
+        let { name, slug, description, image, icon, type, parentId, seoTitle, seoDescription } = req.body;
+
+        // Ensure slug is unique
+        if (slug) {
+            let uniqueSlug = slug;
+            let counter = 1;
+            while (await prisma.category.findUnique({ where: { slug: uniqueSlug } })) {
+                counter++;
+                uniqueSlug = `${slug}-${counter}`;
+            }
+            slug = uniqueSlug;
+        }
 
         const maxOrder = await prisma.category.findFirst({
             where: { parentId: parentId || null },
@@ -66,7 +77,7 @@ export const createCategory = async (req: AuthRequest, res: Response, next: Next
 
         const category = await prisma.category.create({
             data: {
-                name, slug, description, image, icon, parentId,
+                name, slug, description, image, icon, type, parentId,
                 seoTitle, seoDescription,
                 order: (maxOrder?.order || 0) + 1
             }
@@ -80,7 +91,7 @@ export const createCategory = async (req: AuthRequest, res: Response, next: Next
 
 export const updateCategory = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const { name, slug, description, image, icon, parentId, isActive, order, seoTitle, seoDescription } = req.body;
+        const { name, slug, description, image, icon, type, parentId, isActive, order, seoTitle, seoDescription } = req.body;
 
         const category = await prisma.category.update({
             where: { id: req.params.id },
@@ -90,6 +101,7 @@ export const updateCategory = async (req: AuthRequest, res: Response, next: Next
                 ...(description !== undefined && { description }),
                 ...(image !== undefined && { image }),
                 ...(icon !== undefined && { icon }),
+                ...(type !== undefined && { type }),
                 ...(parentId !== undefined && { parentId }),
                 ...(isActive !== undefined && { isActive }),
                 ...(order !== undefined && { order }),

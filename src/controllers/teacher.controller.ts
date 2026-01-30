@@ -110,6 +110,23 @@ export const create = async (req: AuthRequest, res: Response, next: NextFunction
                     branch: { select: { id: true, name: true } }
                 }
             });
+
+            // Create notification for admins
+            const admins = await prisma.user.findMany({
+                where: { role: { in: ['SUPER_ADMIN', 'CENTER_ADMIN'] } }
+            });
+            
+            for (const admin of admins) {
+                await prisma.notification.create({
+                    data: {
+                        type: 'CHANGE_PENDING',
+                        title: '🔔 Yeni Öğretmen Ekleme Talebi',
+                        message: `${req.user.name} yeni öğretmen ekleme talebi oluşturdu (${data.name || 'İsimsiz'}).`,
+                        userId: admin.id,
+                        changeRequestId: changeRequest.id
+                    }
+                });
+            }
             
             return res.status(201).json({ 
                 message: 'Öğretmen ekleme talebi oluşturuldu. Admin onayı bekleniyor.',
@@ -176,6 +193,23 @@ export const update = async (req: AuthRequest, res: Response, next: NextFunction
                     branch: { select: { id: true, name: true } }
                 }
             });
+
+            // Create notification for admins
+            const admins = await prisma.user.findMany({
+                where: { role: { in: ['SUPER_ADMIN', 'CENTER_ADMIN'] } }
+            });
+            
+            for (const admin of admins) {
+                await prisma.notification.create({
+                    data: {
+                        type: 'CHANGE_PENDING',
+                        title: '🔔 Öğretmen Güncelleme Talebi',
+                        message: `${req.user.name} öğretmen güncelleme talebi oluşturdu (${existingTeacher.name}).`,
+                        userId: admin.id,
+                        changeRequestId: changeRequest.id
+                    }
+                });
+            }
             
             return res.json({ 
                 message: 'Öğretmen güncelleme talebi oluşturuldu. Admin onayı bekleniyor.',
@@ -243,6 +277,23 @@ export const deleteTeacher = async (req: AuthRequest, res: Response, next: NextF
                     branch: { select: { id: true, name: true } }
                 }
             });
+
+            // Create notification for admins
+            const admins = await prisma.user.findMany({
+                where: { role: { in: ['SUPER_ADMIN', 'CENTER_ADMIN'] } }
+            });
+            
+            for (const admin of admins) {
+                await prisma.notification.create({
+                    data: {
+                        type: 'CHANGE_PENDING',
+                        title: '🔔 Öğretmen Silme Talebi',
+                        message: `${req.user.name} öğretmen silme talebi oluşturdu (${existingTeacher.name}).`,
+                        userId: admin.id,
+                        changeRequestId: changeRequest.id
+                    }
+                });
+            }
             
             return res.json({ 
                 message: 'Öğretmen silme talebi oluşturuldu. Admin onayı bekleniyor.',

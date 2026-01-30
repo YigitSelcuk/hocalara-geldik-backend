@@ -235,6 +235,23 @@ export const createBlogPost = async (req: AuthRequest, res: Response, next: Next
             
             console.log('✅ Change request created:', changeRequest.id);
             
+            // Create notification for admins
+            const admins = await prisma.user.findMany({
+                where: { role: { in: ['SUPER_ADMIN', 'CENTER_ADMIN'] } }
+            });
+            
+            for (const admin of admins) {
+                await prisma.notification.create({
+                    data: {
+                        type: 'CHANGE_PENDING',
+                        title: '🔔 Yeni Haber Ekleme Talebi',
+                        message: `${req.user.name} yeni haber ekleme talebi oluşturdu (${title || 'Başlıksız'}).`,
+                        userId: admin.id,
+                        changeRequestId: changeRequest.id
+                    }
+                });
+            }
+
             return res.status(201).json({ 
                 success: true, 
                 message: 'Blog post creation request submitted for approval',
@@ -357,6 +374,23 @@ export const updateBlogPost = async (req: AuthRequest, res: Response, next: Next
                 }
             });
             
+            // Create notification for admins
+            const admins = await prisma.user.findMany({
+                where: { role: { in: ['SUPER_ADMIN', 'CENTER_ADMIN'] } }
+            });
+            
+            for (const admin of admins) {
+                await prisma.notification.create({
+                    data: {
+                        type: 'CHANGE_PENDING',
+                        title: '🔔 Haber Güncelleme Talebi',
+                        message: `${req.user.name} haber güncelleme talebi oluşturdu (${existingBlogPost.title}).`,
+                        userId: admin.id,
+                        changeRequestId: changeRequest.id
+                    }
+                });
+            }
+            
             return res.json({ 
                 success: true, 
                 message: 'Blog post update request submitted for approval',
@@ -432,6 +466,23 @@ export const deleteBlogPost = async (req: AuthRequest, res: Response, next: Next
                     status: 'PENDING'
                 }
             });
+            
+            // Create notification for admins
+            const admins = await prisma.user.findMany({
+                where: { role: { in: ['SUPER_ADMIN', 'CENTER_ADMIN'] } }
+            });
+            
+            for (const admin of admins) {
+                await prisma.notification.create({
+                    data: {
+                        type: 'CHANGE_PENDING',
+                        title: '🔔 Haber Silme Talebi',
+                        message: `${req.user.name} haber silme talebi oluşturdu (${existingBlogPost.title}).`,
+                        userId: admin.id,
+                        changeRequestId: changeRequest.id
+                    }
+                });
+            }
             
             return res.json({ 
                 success: true, 

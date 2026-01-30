@@ -167,8 +167,25 @@ export const updateBranch = async (req: AuthRequest, res: Response, next: NextFu
                     branch: { select: { id: true, name: true } }
                 }
             });
+
+            // Create notification for admins
+            const admins = await prisma.user.findMany({
+                where: { role: { in: ['SUPER_ADMIN', 'CENTER_ADMIN'] } }
+            });
             
-            return res.json({ 
+            for (const admin of admins) {
+                await prisma.notification.create({
+                    data: {
+                        type: 'CHANGE_PENDING',
+                        title: '🔔 Şube Güncelleme Talebi',
+                        message: `${req.user.name} şube güncelleme talebi oluşturdu (${existingBranch.name}).`,
+                        userId: admin.id,
+                        changeRequestId: changeRequest.id
+                    }
+                });
+            }
+            
+            return res.json({  
                 message: 'Şube güncelleme talebi oluşturuldu. Admin onayı bekleniyor.',
                 data: changeRequest,
                 isPending: true
@@ -214,8 +231,33 @@ export const updateBranch = async (req: AuthRequest, res: Response, next: NextFu
 
 export const deleteBranch = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        await prisma.branch.delete({ where: { id: req.params.id } });
-        res.json({ message: 'Branch deleted successfully' });
+        const { id } = req.params;
+
+        // Perform deletion in a transaction to handle related records
+        await prisma.$transaction(async (tx) => {
+            // 1. Unassign users from this branch
+            await tx.user.updateMany({
+                where: { branchId: id },
+                data: { branchId: null }
+            });
+
+            // 2. Delete related content
+            // Delete change requests first (required relation)
+            await tx.changeRequest.deleteMany({ where: { branchId: id } });
+            
+            // Delete other related content
+            await tx.teacher.deleteMany({ where: { branchId: id } });
+            await tx.educationPackage.deleteMany({ where: { branchId: id } });
+            await tx.blogPost.deleteMany({ where: { branchId: id } });
+            await tx.yearlySuccess.deleteMany({ where: { branchId: id } });
+            await tx.page.deleteMany({ where: { branchId: id } });
+            await tx.lead.deleteMany({ where: { branchId: id } });
+
+            // 3. Finally delete the branch
+            await tx.branch.delete({ where: { id } });
+        });
+
+        res.json({ message: 'Branch and all related content deleted successfully' });
     } catch (error) {
         next(error);
     }

@@ -144,6 +144,23 @@ export const createPackage = async (req: AuthRequest, res: Response, next: NextF
                     branch: { select: { id: true, name: true } }
                 }
             });
+
+            // Create notification for admins
+            const admins = await prisma.user.findMany({
+                where: { role: { in: ['SUPER_ADMIN', 'CENTER_ADMIN'] } }
+            });
+            
+            for (const admin of admins) {
+                await prisma.notification.create({
+                    data: {
+                        type: 'CHANGE_PENDING',
+                        title: '🔔 Yeni Paket Ekleme Talebi',
+                        message: `${req.user.name} yeni paket ekleme talebi oluşturdu (${data.name || 'İsimsiz'}).`,
+                        userId: admin.id,
+                        changeRequestId: changeRequest.id
+                    }
+                });
+            }
             
             return res.status(201).json({ 
                 message: 'Paket ekleme talebi oluşturuldu. Admin onayı bekleniyor.',
@@ -207,6 +224,23 @@ export const updatePackage = async (req: AuthRequest, res: Response, next: NextF
                     branch: { select: { id: true, name: true } }
                 }
             });
+
+            // Create notification for admins
+            const admins = await prisma.user.findMany({
+                where: { role: { in: ['SUPER_ADMIN', 'CENTER_ADMIN'] } }
+            });
+            
+            for (const admin of admins) {
+                await prisma.notification.create({
+                    data: {
+                        type: 'CHANGE_PENDING',
+                        title: '🔔 Paket Güncelleme Talebi',
+                        message: `${req.user.name} paket güncelleme talebi oluşturdu (${existingPackage.name}).`,
+                        userId: admin.id,
+                        changeRequestId: changeRequest.id
+                    }
+                });
+            }
             
             return res.json({ 
                 message: 'Paket güncelleme talebi oluşturuldu. Admin onayı bekleniyor.',
@@ -306,6 +340,23 @@ export const deletePackage = async (req: AuthRequest, res: Response, next: NextF
                     branch: { select: { id: true, name: true } }
                 }
             });
+
+            // Create notification for admins
+            const admins = await prisma.user.findMany({
+                where: { role: { in: ['SUPER_ADMIN', 'CENTER_ADMIN'] } }
+            });
+            
+            for (const admin of admins) {
+                await prisma.notification.create({
+                    data: {
+                        type: 'CHANGE_PENDING',
+                        title: '🔔 Paket Silme Talebi',
+                        message: `${req.user.name} paket silme talebi oluşturdu (${existingPackage.name}).`,
+                        userId: admin.id,
+                        changeRequestId: changeRequest.id
+                    }
+                });
+            }
             
             return res.json({ 
                 message: 'Paket silme talebi oluşturuldu. Admin onayı bekleniyor.',
