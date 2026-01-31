@@ -62,7 +62,7 @@ export const createSlider = async (req: AuthRequest, res: Response, next: NextFu
         }
 
         const { 
-            title, subtitle, image, link, target, isActive,
+            title, subtitle, image, mobileImage, link, target, isActive,
             primaryButtonText, primaryButtonLink,
             secondaryButtonText, secondaryButtonLink
         } = req.body;
@@ -79,6 +79,7 @@ export const createSlider = async (req: AuthRequest, res: Response, next: NextFu
                 title,
                 subtitle,
                 image,
+                mobileImage: mobileImage || null,
                 link,
                 target: target || 'main',
                 isActive: isActive !== undefined ? isActive : true,
@@ -107,7 +108,7 @@ export const updateSlider = async (req: AuthRequest, res: Response, next: NextFu
     try {
         const { id } = req.params;
         const { 
-            title, subtitle, image, link, target, isActive, order,
+            title, subtitle, image, mobileImage, link, target, isActive, order,
             primaryButtonText, primaryButtonLink,
             secondaryButtonText, secondaryButtonLink
         } = req.body;
@@ -118,6 +119,7 @@ export const updateSlider = async (req: AuthRequest, res: Response, next: NextFu
                 ...(title !== undefined && { title }),
                 ...(subtitle !== undefined && { subtitle }),
                 ...(image !== undefined && { image }),
+                ...(mobileImage !== undefined && { mobileImage: mobileImage || null }),
                 ...(link !== undefined && { link }),
                 ...(target !== undefined && { target }),
                 ...(isActive !== undefined && { isActive }),

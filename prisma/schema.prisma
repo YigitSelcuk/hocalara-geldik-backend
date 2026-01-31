@@ -62,6 +62,7 @@ model Slider {
   title       String?
   subtitle    String?
   image       String
+  mobileImage String?
   link        String?
   target      String   @default("main") // 'main' or branchId
   order       Int      @default(0)
