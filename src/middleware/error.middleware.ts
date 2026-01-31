@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { MulterError } from 'multer';
 
 export class AppError extends Error {
     statusCode: number;
@@ -21,6 +22,20 @@ export const errorHandler = (
 ) => {
     if (err instanceof AppError) {
         return res.status(err.statusCode).json({
+            status: 'error',
+            message: err.message
+        });
+    }
+
+    // Multer errors
+    if (err instanceof MulterError || err.name === 'MulterError' || (err as any).code === 'LIMIT_FILE_SIZE') {
+        if ((err as any).code === 'LIMIT_FILE_SIZE') {
+            return res.status(413).json({
+                status: 'error',
+                message: 'Dosya boyutu çok büyük (Maksimum 5MB)'
+            });
+        }
+        return res.status(400).json({
             status: 'error',
             message: err.message
         });

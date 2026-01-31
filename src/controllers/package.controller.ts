@@ -85,6 +85,24 @@ export const getAllPackages = async (req: AuthRequest, res: Response) => {
     }
 };
 
+export const getPackageById = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const pkg = await prisma.educationPackage.findUnique({
+            where: { id },
+            include: { branch: true }
+        });
+
+        if (!pkg) {
+            throw new AppError('Package not found', 404);
+        }
+
+        res.json({ success: true, data: pkg });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const createPackage = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const { name, ...rest } = req.body;

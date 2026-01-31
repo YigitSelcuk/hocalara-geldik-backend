@@ -35,6 +35,7 @@ import franchiseRoutes from './routes/franchise.routes';
 
 // Middleware
 import { errorHandler } from './middleware/error.middleware';
+import { apiLimiter, authLimiter } from './middleware/rateLimit.middleware';
 
 dotenv.config();
 
@@ -58,6 +59,10 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Static files (uploads)
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Rate Limiting
+app.use('/api/auth', authLimiter); // Stricter limit for auth routes
+app.use('/api', apiLimiter); // General limit for all API routes
 
 // Health check
 app.get('/health', (req, res) => {

@@ -22,7 +22,6 @@ router.post(
     authenticate,
     authorize('SUPER_ADMIN', 'CENTER_ADMIN'),
     [
-        body('title').notEmpty().withMessage('Title is required'),
         body('image').notEmpty().withMessage('Image is required')
     ],
     createSlider
