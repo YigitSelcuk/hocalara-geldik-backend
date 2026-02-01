@@ -74,12 +74,23 @@ export const createUser = async (req: AuthRequest, res: Response, next: NextFunc
 
 export const updateUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const { name, avatar, isActive, password } = req.body;
+        const { name, avatar, isActive, password, role, branchId, email } = req.body;
         const data: any = {};
+        
         if (name !== undefined) data.name = name;
         if (avatar !== undefined) data.avatar = avatar;
         if (isActive !== undefined) data.isActive = isActive;
+        if (role !== undefined) data.role = role;
+        if (email !== undefined) data.email = email;
         if (password) data.password = await bcrypt.hash(password, 10);
+        
+        // Handle branchId explicitly - allow null to clear the branch assignment
+        if (branchId !== undefined) {
+            data.branchId = branchId === null || branchId === '' ? null : branchId;
+        }
+
+        console.log('👤 Updating user:', req.params.id);
+        console.log('👤 Update data:', data);
 
         const user = await prisma.user.update({
             where: { id: req.params.id },
@@ -90,8 +101,11 @@ export const updateUser = async (req: AuthRequest, res: Response, next: NextFunc
             }
         });
 
+        console.log('✅ User updated:', user);
+
         res.json({ user });
     } catch (error) {
+        console.error('❌ User update error:', error);
         next(error);
     }
 };

@@ -53,6 +53,11 @@ export const getAllBlogPosts = async (req: AuthRequest, res: Response) => {
             branchId: p.branchId
         })));
         
+        // Log full first blog post for debugging
+        if (blogPosts.length > 0) {
+            console.log('📰 FULL First blog post:', JSON.stringify(blogPosts[0], null, 2));
+        }
+        
         // If BRANCH_ADMIN, add pending status and filter out deleted ones
         if (req.user?.role === 'BRANCH_ADMIN') {
             const pendingRequests = await prisma.changeRequest.findMany({
